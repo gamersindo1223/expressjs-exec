@@ -4,6 +4,7 @@ import { exec } from 'child_process'
 import serveIndex from 'serve-index'
 import os from 'os'
 import fs from 'fs'
+import bytes from 'bytes'
 const app = express()
 const tmpdir = os.tmpdir()
 app.use(express.json())
@@ -31,7 +32,19 @@ app.all('/', (req, res) => {
         });
         return
     }
-    res.send('Hello World!\ntotal req ' + index)
+	const status = {}
+	const used = process.memoryUsage()
+	for (let key in used) status[key] = formatSize(used[key])
+	
+	const totalmem = os.totalmem()
+	const freemem = os.freemem()
+	status.memoryUsage = `${formatSize(totalmem - freemem)} / ${formatSize(totalmem)}`
+	
+	res.json({
+		message: 'Hello World!',
+		uptime: new Date(process.uptime() * 1000).toUTCString().split(' ')[4],
+		status
+	})
     index++
 })
 const port = process.env.PORT || process.env.SERVER_PORT || 7860
@@ -45,3 +58,7 @@ app.listen(port, async() => {
         console.log('Directory created successfully!');
     })
 })
+
+function formatSize(num) {
+	return bytes(+num || 0, { unitSeparator: ' ' })
+}
